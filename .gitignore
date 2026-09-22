@@ -1,0 +1,5 @@
+# Test and report artifacts
+report.*
+*.sarif
+*.log
+.DS_Store

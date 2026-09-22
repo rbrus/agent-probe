@@ -125,6 +125,16 @@ To inspect the full list of compiled probes:
 
 ---
 
+## 🧪 The AI Red-Teaming Lab Ecosystem
+
+`agent-probe` is part of a modular open-source agent testing triad:
+
+* **[adk-demo-target (Atlas)](https://github.com/rbrus/adk-demo-target)** — **The Ground-Truth Target:** A deliberately attackable Google ADK banking agent with 3 distinct defence tiers (`none` | `basic` | `hardened`). Use Atlas to benchmark scanner accuracy against true positives and true negatives.
+* **[redwire](https://github.com/rbrus/redwire)** — **The Multi-Transport Wire:** Universal Go library providing a single `Send` interface across REST, MCP, A2A, WebSocket, and Browser CDP with built-in SSRF guards.
+* **[agent-probe](https://github.com/rbrus/agent-probe)** — **The Automated Scanner:** Executes OWASP LLM security probes, evaluates guardrails, and exports SARIF / Markdown audit reports.
+
+---
+
 ## 📋 License & Terms of Use
 
 This repository is distributed under the **Business Source License 1.1 (BSL 1.1)**.

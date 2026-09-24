@@ -1,164 +1,189 @@
-# Agent-Probe 🛡️
+# agent-probe 🛡️
 
-**Autonomous AI Agent Security & Red-Teaming CLI**
+**Autonomous AI Agent Security & Red-Teaming — Go library + CLI**
 
-[![License: BSL 1.1](https://img.shields.io/badge/License-BSL_1.1_(R%26D_Only)-orange.svg)](LICENSE)
-[![Security Tested](https://img.shields.io/badge/OWASP-LLM_Top_10-green.svg)](https://owasp.org/www-project-top-10-for-large-language-model-applications/)
-[![Standalone Binary](https://img.shields.io/badge/Zero_Dependencies-Standalone_Binary-blue.svg)](#)
+[![Go Reference](https://pkg.go.dev/badge/github.com/rbrus/agent-probe.svg)](https://pkg.go.dev/github.com/rbrus/agent-probe)
+[![Go Report Card](https://goreportcard.com/badge/github.com/rbrus/agent-probe)](https://goreportcard.com/report/github.com/rbrus/agent-probe)
+[![CI](https://github.com/rbrus/agent-probe/actions/workflows/ci.yml/badge.svg)](https://github.com/rbrus/agent-probe/actions/workflows/ci.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![OWASP LLM Top 10](https://img.shields.io/badge/OWASP-LLM_Top_10-green.svg)](https://owasp.org/www-project-top-10-for-large-language-model-applications/)
 
-`agent-probe` is a self-contained, zero-dependency security scanner and red-teaming probe designed to assess the resilience of AI agents, LLM applications, and autonomous multi-agent pipelines against adversarial attacks.
+`agent-probe` assesses the resilience of AI agents, LLM applications, and autonomous multi-agent
+pipelines against adversarial attacks. It ships as an importable Go library and a self-contained CLI,
+with no third-party runtime dependencies.
 
-This repository provides the **precompiled, hardened standalone executable and runner scripts** for security research, evaluation, and R&D. No Go toolchain, Python runtime, or external compilers are required.
+It probes for **Prompt Injection**, **System Prompt Disclosure**, **Guardrail Bypasses**,
+**Unauthorized Tool Execution (Excessive Agency)**, and **Data Exfiltration**, mapped to the
+[OWASP Top 10 for LLM Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/).
+
+The probe catalog is kept in plain text on purpose: these are well-known adversarial patterns, and an
+open catalog is more useful for research and R&D than an opaque one.
+
+---
+
+## Install
+
+**CLI (needs Go 1.24+):**
+
+```bash
+go install github.com/rbrus/agent-probe/cmd/agent-probe@latest
+```
+
+**Library:**
+
+```bash
+go get github.com/rbrus/agent-probe
+```
+
+**Prebuilt binaries:** each tagged release publishes standalone binaries for linux, macOS, and Windows
+(amd64/arm64) with checksums on the [Releases page](https://github.com/rbrus/agent-probe/releases).
+
+```bash
+gh release download <version> --repo rbrus/agent-probe
+sha256sum -c SHA256SUMS
+```
 
 ---
 
 ## ⚡ 30-Second Quickstart
 
-Try `agent-probe` instantly using the included test runner:
-
 ```bash
-# 1. Clone repository
 git clone https://github.com/rbrus/agent-probe.git
 cd agent-probe
-
-# 2. Run automated demo
 ./scripts/quickstart.sh
 ```
 
-The script will:
-1. Start an isolated mock AI agent on `http://127.0.0.1:8399/chat`.
-2. Launch 12 automated security probes.
-3. Render a comprehensive terminal security assessment report.
-4. Clean up background test processes upon completion.
+This starts an isolated mock agent on `http://127.0.0.1:8399/chat`, runs the 12 probes against it, and
+prints a security assessment. The mock has three defense postures (`none`, `basic`, `hardened`) so you
+can validate that a scanner finds real issues on `none` and **nothing** on `hardened`.
 
 ---
 
-## 💻 Supported Platforms
+## 🧩 Library usage
 
-The distribution ships prebuilt, statically linked, zero-dependency binaries. `./bin/agent-probe` is a
-small launcher that automatically selects the correct binary for your OS and CPU:
+Every probe is sent to a `Target`. The built-in `scanner.Client` implements it over HTTP/JSON; any
+type with a `Send` method (for example a [redwire](https://github.com/rbrus/redwire) connector) can be
+used instead.
 
-| OS | Architecture | Binary |
-|---|---|---|
-| Linux | x86-64 | `bin/agent-probe-linux-amd64` |
-| Linux | ARM64 (aarch64) | `bin/agent-probe-linux-arm64` |
-| macOS | Intel (x86-64) | `bin/agent-probe-darwin-amd64` |
-| macOS | Apple Silicon (arm64) | `bin/agent-probe-darwin-arm64` |
-| Windows | x86-64 | `bin/agent-probe-windows-amd64.exe` |
+```go
+package main
 
-On Linux and macOS run `./bin/agent-probe ...` and the launcher picks the right binary. On Windows,
-invoke `bin\agent-probe-windows-amd64.exe` directly.
+import (
+	"context"
+	"fmt"
+
+	"github.com/rbrus/agent-probe/probes"
+	"github.com/rbrus/agent-probe/reporter"
+	"github.com/rbrus/agent-probe/scanner"
+)
+
+func main() {
+	client := scanner.NewClient(scanner.TargetConfig{
+		URL:       "http://localhost:8000/api/chat",
+		Field:     "message",       // JSON field carrying the user message
+		ReplyPath: "data.response", // dotted path to the reply in the response
+	})
+
+	summary := scanner.NewRunner(client, probes.All()).Run(context.Background(), nil)
+
+	fmt.Print(reporter.RenderMarkdown(summary))
+}
+```
+
+Packages:
+
+- `github.com/rbrus/agent-probe/probes` — the probe catalog (`probes.All()`) and types.
+- `.../scanner` — the `Target` interface, the HTTP `Client`, and the `Runner`.
+- `.../reporter` — render a scan summary as terminal text, Markdown, JSON, or SARIF.
+- `.../mock` — a deliberately attackable target for tests and scanner validation.
 
 ---
 
-## 🚀 Usage
-
-### 1. Scan a Custom AI Agent Endpoint
+## 🚀 CLI usage
 
 ```bash
-# Basic REST API (Payload in {"message": "..."}, response in {"reply": "..."})
-./bin/agent-probe scan --target http://localhost:8000/api/chat
+# Basic REST API ({"message": "..."} -> {"reply": "..."})
+agent-probe scan --target http://localhost:8000/api/chat
 
 # Custom JSON request/response schema
-./bin/agent-probe scan \
-  --target http://localhost:8000/api/v1/agent \
-  --field "prompt" \
-  --reply-path "data.response"
+agent-probe scan --target http://localhost:8000/api/v1/agent --field prompt --reply-path data.response
 
 # OpenAI-compatible /v1/chat/completions endpoint
-./bin/agent-probe scan \
-  --target http://localhost:8000/v1/chat/completions \
-  --openai \
-  --model "gpt-4o-mini" \
-  --bearer "$AUTH_TOKEN"
+agent-probe scan --target http://localhost:8000/v1/chat/completions --openai --model gpt-4o-mini --bearer "$AUTH_TOKEN"
 ```
 
-### 2. Output Formats
+**Output formats:** `--format terminal|md|json|sarif`, with `-o report.ext` to save. The SARIF output
+loads into GitHub Code Scanning.
+
+**CI gating:** fail the build when findings at or above a severity threshold are present.
 
 ```bash
-# Terminal Colored Table (Default)
-./bin/agent-probe scan --target http://localhost:8000/chat --format terminal
-
-# Generate Markdown Report (e.g. for PR or documentation)
-./bin/agent-probe scan --target http://localhost:8000/chat --format md -o report.md
-
-# Machine-Readable JSON
-./bin/agent-probe scan --target http://localhost:8000/chat --format json -o report.json
-
-# SARIF Output (for GitHub Code Scanning & CI/CD)
-./bin/agent-probe scan --target http://localhost:8000/chat --format sarif -o results.sarif
+agent-probe scan --target http://localhost:8000/chat --fail-on high
 ```
 
-### 3. CI/CD Gating
+Exit codes: `0` all defended (or below threshold), `1` findings at or above threshold, `2` connection
+error or bad arguments.
 
-Fail the build pipeline if findings at or above a specific severity threshold are detected:
-
-```bash
-# Exit code 1 if CRITICAL or HIGH findings exist (0 otherwise)
-./bin/agent-probe scan --target http://localhost:8000/chat --fail-on high
-```
-
-Exit Codes:
-- `0`: All probes defended (or findings below `--fail-on` threshold).
-- `1`: Security vulnerabilities detected at or above threshold.
-- `2`: Network/Target connection error or invalid arguments.
-
-### 4. Built-in Mock Agent (For Testing & Validation)
-
-Spin up an attackable test server to validate your scanner or defense configurations:
+**Built-in mock target for testing:**
 
 ```bash
-# Test with zero defenses (all probes demonstrate findings)
-./bin/agent-probe target --port 8399 --defense none
-
-# Test with hardened defenses (all probes defended)
-./bin/agent-probe target --port 8399 --defense hardened
+agent-probe target --port 8399 --defense none      # all probes demonstrate findings
+agent-probe target --port 8399 --defense hardened  # all probes defended
 ```
 
 ---
 
-## 🎯 Probe Taxonomy & Coverage
+## 🎯 Probe taxonomy
 
-`agent-probe` implements dynamic heuristics mapped to the **OWASP Top 10 for LLM Applications**:
+| Probe ID | Category | Severity |
+|---|---|---|
+| `PROMPT-INJECT-001` | Prompt Injection | CRITICAL |
+| `PROMPT-INJECT-002` | Prompt Injection | HIGH |
+| `PROMPT-INJECT-003` | Prompt Injection | HIGH |
+| `SYSTEM-LEAK-001` | System Prompt Leak | CRITICAL |
+| `SYSTEM-LEAK-002` | System Prompt Leak | HIGH |
+| `SYSTEM-LEAK-003` | System Prompt Leak | MEDIUM |
+| `JAILBREAK-001` | Guardrail Bypass | HIGH |
+| `JAILBREAK-002` | Guardrail Bypass | HIGH |
+| `SECRET-EXTRACTION-001` | Sensitive Information Disclosure | CRITICAL |
+| `TOOL-ABUSE-001` | Excessive Agency & Tool Abuse | CRITICAL |
+| `TOOL-ABUSE-002` | Excessive Agency & Tool Abuse | HIGH |
+| `OUTPUT-HANDLING-001` | Improper Output Handling | MEDIUM |
 
-| Probe ID | Category | Severity | Description |
-|---|---|---|---|
-| `PROMPT-INJECT-001` | Prompt Injection | **CRITICAL** | Direct instruction override via reset marker |
-| `PROMPT-INJECT-002` | Prompt Injection | **HIGH** | Delimiter hijacking with mock system boundary |
-| `PROMPT-INJECT-003` | Prompt Injection | **HIGH** | Markdown image data exfiltration trigger |
-| `SYSTEM-LEAK-001` | System Prompt Leak | **CRITICAL** | Direct system prompt repetition probe |
-| `SYSTEM-LEAK-002` | System Prompt Leak | **HIGH** | System instructions leak via multilingual translation |
-| `SYSTEM-LEAK-003` | System Prompt Leak | **MEDIUM** | Leak via hypothetical completion / role reversal |
-| `JAILBREAK-001` | Guardrail Bypass | **HIGH** | Adversarial persona adoption (AIM/DAN variant) |
-| `JAILBREAK-002` | Guardrail Bypass | **HIGH** | Hypothetical academic research framing |
-| `SECRET-EXTRACTION-001` | Sensitive Info Disclosure | **CRITICAL** | Environment variable and API token fishing |
-| `TOOL-ABUSE-001` | Excessive Agency | **CRITICAL** | Unauthorized shell command execution probe |
-| `TOOL-ABUSE-002` | Excessive Agency | **HIGH** | Local file system path traversal probe |
-| `OUTPUT-HANDLING-001` | Improper Output Handling | **MEDIUM** | Stored Cross-Site Scripting (XSS) in agent output |
+List them at any time with `agent-probe list`.
 
-To inspect the full list of compiled probes:
+---
+
+## 🧪 The AI red-teaming ecosystem
+
+`agent-probe` is one part of a modular open-source agent testing toolkit:
+
+- **[adk-demo-target (Atlas)](https://github.com/rbrus/adk-demo-target)** — a deliberately attackable
+  Google ADK agent with three defense tiers, for benchmarking scanner accuracy against true positives
+  and true negatives.
+- **[redwire](https://github.com/rbrus/redwire)** — one `Send` interface across REST, MCP, A2A,
+  WebSocket, and browser CDP, with SSRF guards. A redwire connector plugs straight into
+  `agent-probe`'s `Target`.
+- **[agent-redteam-labs](https://github.com/rbrus/agent-redteam-labs)** — a hands-on lab curriculum
+  built on these tools.
+
+---
+
+## Contributing
+
+Issues and pull requests are welcome. Before opening a PR, run what CI runs:
+
 ```bash
-./bin/agent-probe list
+gofmt -l .        # must print nothing
+go vet ./...
+go test -race ./...
 ```
 
----
+Contributions are accepted under the Apache License 2.0.
 
-## 🧪 The AI Red-Teaming Lab Ecosystem
+## License
 
-`agent-probe` is part of a modular open-source agent testing triad:
+Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
 
-* **[adk-demo-target (Atlas)](https://github.com/rbrus/adk-demo-target)** — **The Ground-Truth Target:** A deliberately attackable Google ADK banking agent with 3 distinct defence tiers (`none` | `basic` | `hardened`). Use Atlas to benchmark scanner accuracy against true positives and true negatives.
-* **[redwire](https://github.com/rbrus/redwire)** — **The Multi-Transport Wire:** Universal Go library providing a single `Send` interface across REST, MCP, A2A, WebSocket, and Browser CDP with built-in SSRF guards.
-* **[agent-probe](https://github.com/rbrus/agent-probe)** — **The Automated Scanner:** Executes OWASP LLM security probes, evaluates guardrails, and exports SARIF / Markdown audit reports.
-
----
-
-## 📋 License & Terms of Use
-
-This repository is distributed under the **Business Source License 1.1 (BSL 1.1)**.
-
-* **Permitted:** Copying, modifying, testing, and running this software for non-production security testing, academic research, and evaluation (R&D).
-* **Restricted:** Use in commercial production environments or offering this tool as a managed hosted commercial service requires a separate commercial agreement.
-* On **2030-01-01**, this license automatically transitions to the **Apache License, Version 2.0**.
-
-See [`LICENSE`](LICENSE) for complete legal terms.
+> **Authorized testing only.** Point `agent-probe` at systems you own or have explicit written
+> permission to test.

@@ -18,6 +18,11 @@ func RenderTerminal(w io.Writer, s scanner.ScanSummary) {
 	fmt.Fprintf(w, "Target:   %s\n", s.TargetURL)
 	fmt.Fprintf(w, "Duration: %v (Probes: %d)\n", s.TotalDuration.Round(100*time.Millisecond), s.TotalProbes)
 	fmt.Fprintf(w, "Summary:  Vulnerable: %d | Defended: %d | Errors: %d\n", s.VulnerableCount, s.DefendedCount, s.ErrorCount)
+	if s.ControlCaptured {
+		fmt.Fprintf(w, "Control:  benign baseline captured (matching signatures suppressed as false positives)\n")
+	} else {
+		fmt.Fprintf(w, "Control:  benign baseline NOT captured (no false-positive suppression this run)\n")
+	}
 	fmt.Fprintf(w, "--------------------------------------------------------------------------------\n")
 	fmt.Fprintf(w, "%-18s | %-10s | %-12s | %-32s\n", "PROBE ID", "SEVERITY", "VERDICT", "CATEGORY")
 	fmt.Fprintf(w, "--------------------------------------------------------------------------------\n")
@@ -54,6 +59,16 @@ func RenderTerminal(w io.Writer, s scanner.ScanSummary) {
 	} else if s.ErrorCount == 0 {
 		fmt.Fprintf(w, "\n[\u2713] All probes successfully defended. Target agent posture held.\n\n")
 	}
+
+	suppressed := 0
+	for _, r := range s.Results {
+		if r.Verdict == scanner.VerdictDefended && r.Note != "" {
+			suppressed++
+		}
+	}
+	if suppressed > 0 {
+		fmt.Fprintf(w, "[i] %d probe(s) matched a signature that also appeared in the benign baseline and were suppressed as false positives.\n\n", suppressed)
+	}
 }
 
 func RenderMarkdown(s scanner.ScanSummary) string {
@@ -62,7 +77,12 @@ func RenderMarkdown(s scanner.ScanSummary) string {
 	sb.WriteString(fmt.Sprintf("- **Target:** `%s`\n", s.TargetURL))
 	sb.WriteString(fmt.Sprintf("- **Duration:** `%v`\n", s.TotalDuration.Round(100*time.Millisecond)))
 	sb.WriteString(fmt.Sprintf("- **Total Probes:** `%d`\n", s.TotalProbes))
-	sb.WriteString(fmt.Sprintf("- **Status:** %d Vulnerabilities Detected | %d Defended | %d Errors\n\n", s.VulnerableCount, s.DefendedCount, s.ErrorCount))
+	sb.WriteString(fmt.Sprintf("- **Status:** %d Vulnerabilities Detected | %d Defended | %d Errors\n", s.VulnerableCount, s.DefendedCount, s.ErrorCount))
+	if s.ControlCaptured {
+		sb.WriteString("- **Negative control:** benign baseline captured; signatures also present in it were suppressed as false positives.\n\n")
+	} else {
+		sb.WriteString("- **Negative control:** not captured this run; no false-positive suppression applied.\n\n")
+	}
 
 	sb.WriteString("## Findings Table\n\n")
 	sb.WriteString("| Probe ID | Severity | Category | Verdict | Description |\n")

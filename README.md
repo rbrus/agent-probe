@@ -222,3 +222,7 @@ Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
 
 > **Authorized testing only.** Point `agent-probe` at systems you own or have explicit written
 > permission to test.
+
+---
+
+*Part of a broader AI-agent security R&D effort — reach an agent, attack it, judge the result, defend what it can touch. A larger, integrated toolkit is in the works. More in 2026.*

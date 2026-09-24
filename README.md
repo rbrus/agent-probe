@@ -33,6 +33,24 @@ The script will:
 
 ---
 
+## 💻 Supported Platforms
+
+The distribution ships prebuilt, statically linked, zero-dependency binaries. `./bin/agent-probe` is a
+small launcher that automatically selects the correct binary for your OS and CPU:
+
+| OS | Architecture | Binary |
+|---|---|---|
+| Linux | x86-64 | `bin/agent-probe-linux-amd64` |
+| Linux | ARM64 (aarch64) | `bin/agent-probe-linux-arm64` |
+| macOS | Intel (x86-64) | `bin/agent-probe-darwin-amd64` |
+| macOS | Apple Silicon (arm64) | `bin/agent-probe-darwin-arm64` |
+| Windows | x86-64 | `bin/agent-probe-windows-amd64.exe` |
+
+On Linux and macOS run `./bin/agent-probe ...` and the launcher picks the right binary. On Windows,
+invoke `bin\agent-probe-windows-amd64.exe` directly.
+
+---
+
 ## 🚀 Usage
 
 ### 1. Scan a Custom AI Agent Endpoint

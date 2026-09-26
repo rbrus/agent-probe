@@ -7,13 +7,15 @@ import (
 
 func TestProbesCatalog(t *testing.T) {
 	all := All()
-	if len(all) != 15 {
-		t.Fatalf("expected 15 probes, got %d", len(all))
+	if len(all) != 17 {
+		t.Fatalf("expected 17 probes, got %d", len(all))
 	}
 
 	foundTagPlane := false
 	foundAnsi := false
 	foundIndirectDoc := false
+	foundBase64 := false
+	foundSSRF := false
 
 	for _, p := range all {
 		if p.ID == "" || p.Payload == "" || p.Description == "" {
@@ -40,6 +42,18 @@ func TestProbesCatalog(t *testing.T) {
 				t.Errorf("expected ANSI description, got %s", p.Description)
 			}
 		}
+		if p.ID == "PROMPT-INJECT-006" {
+			foundBase64 = true
+			if !strings.Contains(p.Description, "base64") {
+				t.Errorf("expected base64 description, got %s", p.Description)
+			}
+		}
+		if p.ID == "TOOL-ABUSE-003" {
+			foundSSRF = true
+			if !strings.Contains(p.Description, "metadata") && !strings.Contains(p.Description, "SSRF") {
+				t.Errorf("expected SSRF description, got %s", p.Description)
+			}
+		}
 	}
 
 	if !foundTagPlane {
@@ -50,6 +64,12 @@ func TestProbesCatalog(t *testing.T) {
 	}
 	if !foundAnsi {
 		t.Error("OUTPUT-HANDLING-002 probe not found")
+	}
+	if !foundBase64 {
+		t.Error("PROMPT-INJECT-006 probe not found")
+	}
+	if !foundSSRF {
+		t.Error("TOOL-ABUSE-003 probe not found")
 	}
 }
 

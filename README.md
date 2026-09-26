@@ -54,7 +54,7 @@ cd agent-probe
 ./scripts/quickstart.sh
 ```
 
-This starts an isolated mock agent on `http://127.0.0.1:8399/chat`, runs the 15 probes against it, and
+This starts an isolated mock agent on `http://127.0.0.1:8399/chat`, runs the 17 probes against it, and
 prints a security assessment. The mock has three defense postures (`none`, `basic`, `hardened`) so you
 can validate that a scanner finds real issues on `none` and **nothing** on `hardened`.
 
@@ -153,6 +153,8 @@ agent-probe target --port 8399 --defense hardened  # all probes defended
 | `TOOL-ABUSE-002` | Excessive Agency & Tool Abuse | HIGH |
 | `OUTPUT-HANDLING-001` | Improper Output Handling | MEDIUM |
 | `OUTPUT-HANDLING-002` | Improper Output Handling | MEDIUM |
+| `PROMPT-INJECT-006` | Prompt Injection | HIGH |
+| `TOOL-ABUSE-003` | Excessive Agency & Tool Abuse | CRITICAL |
 
 List them at any time with `agent-probe list`.
 

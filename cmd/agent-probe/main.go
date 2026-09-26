@@ -15,9 +15,17 @@ import (
 )
 
 var (
-	version   = "1.0.0"
-	buildDate = "2026-09-22"
+	version      = "1.1.0"
+	buildVersion = ""
+	buildDate    = "2026-09-26"
 )
+
+func getVersion() string {
+	if buildVersion != "" {
+		return buildVersion
+	}
+	return version
+}
 
 const usageText = `agent-probe — Autonomous AI Agent Security & Red-Teaming CLI
 
@@ -66,7 +74,7 @@ func main() {
 	case "list":
 		os.Exit(runList())
 	case "version", "--version", "-v":
-		fmt.Printf("agent-probe version %s (built %s)\n", version, buildDate)
+		fmt.Printf("agent-probe version %s (built %s)\n", getVersion(), buildDate)
 		os.Exit(0)
 	case "help", "--help", "-h":
 		fmt.Print(usageText)

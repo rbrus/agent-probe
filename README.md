@@ -54,7 +54,7 @@ cd agent-probe
 ./scripts/quickstart.sh
 ```
 
-This starts an isolated mock agent on `http://127.0.0.1:8399/chat`, runs the 14 probes against it, and
+This starts an isolated mock agent on `http://127.0.0.1:8399/chat`, runs the 15 probes against it, and
 prints a security assessment. The mock has three defense postures (`none`, `basic`, `hardened`) so you
 can validate that a scanner finds real issues on `none` and **nothing** on `hardened`.
 
@@ -142,6 +142,7 @@ agent-probe target --port 8399 --defense hardened  # all probes defended
 | `PROMPT-INJECT-002` | Prompt Injection | HIGH |
 | `PROMPT-INJECT-003` | Prompt Injection | HIGH |
 | `PROMPT-INJECT-004` | Prompt Injection | HIGH |
+| `PROMPT-INJECT-005` | Prompt Injection | CRITICAL |
 | `SYSTEM-LEAK-001` | System Prompt Leak | CRITICAL |
 | `SYSTEM-LEAK-002` | System Prompt Leak | HIGH |
 | `SYSTEM-LEAK-003` | System Prompt Leak | MEDIUM |

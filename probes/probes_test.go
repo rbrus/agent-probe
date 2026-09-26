@@ -7,12 +7,13 @@ import (
 
 func TestProbesCatalog(t *testing.T) {
 	all := All()
-	if len(all) != 14 {
-		t.Fatalf("expected 14 probes, got %d", len(all))
+	if len(all) != 15 {
+		t.Fatalf("expected 15 probes, got %d", len(all))
 	}
 
 	foundTagPlane := false
 	foundAnsi := false
+	foundIndirectDoc := false
 
 	for _, p := range all {
 		if p.ID == "" || p.Payload == "" || p.Description == "" {
@@ -27,6 +28,12 @@ func TestProbesCatalog(t *testing.T) {
 				t.Errorf("expected Unicode description, got %s", p.Description)
 			}
 		}
+		if p.ID == "PROMPT-INJECT-005" {
+			foundIndirectDoc = true
+			if !strings.Contains(p.Description, "document") {
+				t.Errorf("expected document description, got %s", p.Description)
+			}
+		}
 		if p.ID == "OUTPUT-HANDLING-002" {
 			foundAnsi = true
 			if !strings.Contains(p.Description, "ANSI") {
@@ -37,6 +44,9 @@ func TestProbesCatalog(t *testing.T) {
 
 	if !foundTagPlane {
 		t.Error("PROMPT-INJECT-004 probe not found")
+	}
+	if !foundIndirectDoc {
+		t.Error("PROMPT-INJECT-005 probe not found")
 	}
 	if !foundAnsi {
 		t.Error("OUTPUT-HANDLING-002 probe not found")

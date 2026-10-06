@@ -1,5 +1,7 @@
 # agent-probe 🛡️
 
+> **Archived.** agent-probe is superseded by [**sixi-scanner**](https://github.com/rbrus/sixi-scanner), a single Go binary with 21 techniques, SARIF output and a GitHub Action ([`rbrus/scan-action`](https://github.com/rbrus/scan-action)). This repository stays readable, and `v1.2.0` keeps working, but it receives no further changes.
+
 **Autonomous AI Agent Security & Red-Teaming — Go library + CLI**
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/rbrus/agent-probe.svg)](https://pkg.go.dev/github.com/rbrus/agent-probe)
